@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:auto_swift/core/widgets/custom_button.dart';
 import 'package:auto_swift/core/widgets/custom_container.dart';
 import 'package:auto_swift/core/widgets/custom_text_field.dart';
 import 'package:auto_swift/features/admin/widgets/custom_drop_down.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // 🔹 ADDED: اختيار صورة
+import 'package:supabase_flutter/supabase_flutter.dart'; // 🔹 ADDED: Supabase
 
 class AdminView extends StatefulWidget {
   const AdminView({super.key});
@@ -18,9 +22,37 @@ class _AdminViewState extends State<AdminView> {
   final TextEditingController _engine = TextEditingController();
   final TextEditingController _speed = TextEditingController();
   final TextEditingController _seats = TextEditingController();
-  List<String> availableColors = ['Black', 'Red', 'Blue'];
+  final supabase = Supabase.instance.client;
+  File? carImage;
   List<String> brands = ['BMW', 'Mercedes', 'Audi'];
   String? selectedBrand;
+
+  Future pickImage() async {
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        carImage = File(image.path);
+      });
+    }
+  }
+
+  Future addCar() async {
+    if (carImage == null) return;
+
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}.png';
+    await supabase.storage.from('cars').upload(fileName, carImage!);
+    final imageUrl = supabase.storage.from('cars').getPublicUrl(fileName);
+
+    await supabase.from('cars').insert({
+      'model': _model.text,
+      'price': _price.text,
+      'engine': _engine.text,
+      'speed': _speed.text,
+      'seats': _seats.text,
+      'brand': selectedBrand,
+      'image_url': imageUrl,
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,22 +64,30 @@ class _AdminViewState extends State<AdminView> {
         backgroundColor: Colors.grey.shade300,
       ),
       body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CustomContainer(
-                  height: 40,
-                  width: 40,
-                  color: Colors.pink,
-                  radius: 60,
+                GestureDetector(
+                  onTap: pickImage,
+                  child: CustomContainer(
+                    height: 40,
+                    width: 40,
+                    color: Colors.pink,
+                    radius: 60,
+                    child: carImage != null
+                        ? ClipOval(
+                            child: Image.file(carImage!, fit: BoxFit.cover),
+                          )
+                        : null,
+                  ),
                 ),
-                Icon(CupertinoIcons.share_up),
+                const Icon(CupertinoIcons.share_up),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -57,8 +97,7 @@ class _AdminViewState extends State<AdminView> {
                     type: TextInputType.text,
                   ),
                 ),
-                SizedBox(width: 12),
-
+                const SizedBox(width: 12),
                 Expanded(
                   child: CustomTextField(
                     controller: _speed,
@@ -66,7 +105,7 @@ class _AdminViewState extends State<AdminView> {
                     type: TextInputType.number,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: CustomTextField(
                     controller: _seats,
@@ -76,22 +115,19 @@ class _AdminViewState extends State<AdminView> {
                 ),
               ],
             ),
-            SizedBox(height: 24),
-
+            const SizedBox(height: 24),
             CustomTextField(
               controller: _model,
               hint: 'Car Model',
               type: TextInputType.text,
             ),
-
-            SizedBox(height: 24),
-
+            const SizedBox(height: 24),
             CustomTextField(
               controller: _price,
               hint: 'Car Price',
               type: TextInputType.number,
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             CustomDropdown(
               valid: 'Please select at Least one item',
               hint: 'Car Brand',
@@ -108,13 +144,47 @@ class _AdminViewState extends State<AdminView> {
                 });
               },
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: pickImage,
+              child: Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: carImage == null
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.add_a_photo, size: 32, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'Tap to upload car image',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          carImage!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 24),
             CustomButton(
               radius: 8,
               color: Colors.black87,
               height: 34,
               width: double.infinity,
-              child: Center(
+              onTap: addCar,
+              child: const Center(
                 child: Text(
                   'Add Car',
                   style: TextStyle(
@@ -123,8 +193,7 @@ class _AdminViewState extends State<AdminView> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              onTap: () {},
+              ), //
             ),
           ],
         ),
