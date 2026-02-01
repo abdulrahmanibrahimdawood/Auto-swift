@@ -12,16 +12,16 @@ class AdminView extends StatefulWidget {
   State<AdminView> createState() => _AdminViewState();
 }
 
-TextEditingController _model = TextEditingController();
-TextEditingController _price = TextEditingController();
-TextEditingController _engine = TextEditingController();
-TextEditingController _speed = TextEditingController();
-TextEditingController _seats = TextEditingController();
-List<String> availableColors = ['Black', 'Red', 'Blue'];
-List<String> brands = ['BMW', 'Mercedes', 'Audi'];
-String? selectedBrand;
-
 class _AdminViewState extends State<AdminView> {
+  final TextEditingController _model = TextEditingController();
+  final TextEditingController _price = TextEditingController();
+  final TextEditingController _engine = TextEditingController();
+  final TextEditingController _speed = TextEditingController();
+  final TextEditingController _seats = TextEditingController();
+  List<String> availableColors = ['Black', 'Red', 'Blue'];
+  List<String> brands = ['BMW', 'Mercedes', 'Audi'];
+  String? selectedBrand;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
